@@ -1,0 +1,544 @@
+-- Vtr Hub - Volleyball Legends
+-- Tema VERMELHO | Key System + Auto Farm (0.5s) + Pre-Delay 1s
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local TweenService = game:GetService("TweenService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+-- ==================== CONFIGURAÇÕES ANTIBAN (AJUSTADO) ====================
+local ANTIBAN = {
+    INTERVALO_BASE = 0.5,             -- Intervalo entre coletas: 0.5 segundos
+    VARIACAO_MIN = 0.9,               -- Variação mínima (0.45s)
+    VARIACAO_MAX = 1.1,               -- Variação máxima (0.55s)
+    ATRASO_PRE_ACAO = {1.0, 1.0},     -- Delay fixo de 1 segundo antes de cada coleta
+    CHANCE_PAUSA = 0.10,              -- Reduzida para não interferir no ritmo
+    PAUSA_EXTRA = {1.0, 2.0}          -- Pausas extras mais curtas
+}
+
+-- ==================== LISTA DE KEYS VÁLIDAS ====================
+local KEYS_VALIDAS = {
+    "VTRHUB2024#X",
+    "LUCKY@SPIN77",
+    "VOLLEY#MASTER9",
+    "ELITE@KEY#2024",
+    "SPIKE#PRO2025",
+    "NET@BLOCKER22",
+    "SERVE#ACE#88",
+    "LIBERO@DEFENSE",
+    "CHAMPION#VTR99",
+    "POWER@SPIKE#1",
+    "JUMP#SERVE#42",
+    "QUICK@ATTACK7",
+    "BLOCK#MONSTER8",
+    "DIG@MASTER#23",
+    "SETTER#PRO#55",
+    "ROTATION#WIN99",
+    "FLOAT@SERVE#11",
+    "BACKROW@ATK#33",
+    "MIDDLE#BLOCK#77",
+    "OPPOSITE@HIT#21",
+    "DEFENSE@WALL#64",
+    "LIBERO@DIG#15",
+    "COURT#KING#2024",
+    "MATCH#POINT#99"
+}
+
+local remote
+
+-- ==================== FUNÇÕES AUXILIARES ====================
+local function randomFloat(min, max)
+    return min + (math.random() * (max - min))
+end
+
+local function waitAntiban(baseInterval)
+    local variacao = randomFloat(ANTIBAN.VARIACAO_MIN, ANTIBAN.VARIACAO_MAX)
+    local tempo = baseInterval * variacao
+    task.wait(tempo)
+end
+
+local function executarComAntiban(callback)
+    -- Atraso fixo de 1 segundo antes da ação
+    task.wait(ANTIBAN.ATRASO_PRE_ACAO[1])
+    callback()
+    if math.random() < ANTIBAN.CHANCE_PAUSA then
+        local pausa = randomFloat(ANTIBAN.PAUSA_EXTRA[1], ANTIBAN.PAUSA_EXTRA[2])
+        task.wait(pausa)
+    end
+end
+
+-- ==================== CORES DO TEMA VERMELHO ====================
+local CORES = {
+    PRINCIPAL = Color3.fromRGB(220, 40, 40),
+    HOVER = Color3.fromRGB(255, 70, 70),
+    FUNDO_ESCURO = Color3.fromRGB(20, 20, 25),
+    FUNDO_BOTAO = Color3.fromRGB(35, 35, 45),
+    TEXTO_BRANCO = Color3.fromRGB(255, 255, 255),
+    SUCESSO = Color3.fromRGB(100, 255, 100),
+    ERRO = Color3.fromRGB(255, 100, 100),
+    ANTIBAN_ATIVO = Color3.fromRGB(100, 255, 150)
+}
+
+-- ==================== INTERFACE PRINCIPAL ====================
+local function CriarInterfacePrincipal()
+    local ScreenGui = Instance.new("ScreenGui")
+    ScreenGui.Name = "VtrHub_Main"
+    ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+    ScreenGui.ResetOnSpawn = false
+
+    local Frame = Instance.new("Frame")
+    Frame.Parent = ScreenGui
+    Frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    Frame.BackgroundTransparency = 0.05
+    Frame.BorderSizePixel = 0
+    Frame.Position = UDim2.new(0, 20, 0, 20)
+    Frame.Size = UDim2.new(0, 280, 0, 230)
+    Frame.Active = true
+    Frame.Draggable = true
+    Frame.ClipsDescendants = true
+
+    local Corner = Instance.new("UICorner")
+    Corner.CornerRadius = UDim.new(0, 12)
+    Corner.Parent = Frame
+
+    local TopBar = Instance.new("Frame")
+    TopBar.Parent = Frame
+    TopBar.BackgroundColor3 = CORES.FUNDO_ESCURO
+    TopBar.BackgroundTransparency = 0.3
+    TopBar.BorderSizePixel = 0
+    TopBar.Position = UDim2.new(0, 0, 0, 0)
+    TopBar.Size = UDim2.new(1, 0, 0, 35)
+
+    local TopCorner = Instance.new("UICorner")
+    TopCorner.CornerRadius = UDim.new(0, 12)
+    TopCorner.Parent = TopBar
+
+    local Titulo = Instance.new("TextLabel")
+    Titulo.Parent = TopBar
+    Titulo.BackgroundTransparency = 1
+    Titulo.Position = UDim2.new(0, 12, 0, 0)
+    Titulo.Size = UDim2.new(0, 150, 1, 0)
+    Titulo.Font = Enum.Font.GothamBold
+    Titulo.Text = "🔥 VTR HUB"
+    Titulo.TextColor3 = CORES.PRINCIPAL
+    Titulo.TextSize = 14
+    Titulo.TextXAlignment = Enum.TextXAlignment.Left
+
+    local MinimizarBtn = Instance.new("TextButton")
+    MinimizarBtn.Parent = TopBar
+    MinimizarBtn.BackgroundColor3 = CORES.FUNDO_BOTAO
+    MinimizarBtn.BackgroundTransparency = 0.5
+    MinimizarBtn.Position = UDim2.new(1, -55, 0, 7)
+    MinimizarBtn.Size = UDim2.new(0, 22, 0, 22)
+    MinimizarBtn.Font = Enum.Font.GothamBold
+    MinimizarBtn.Text = "─"
+    MinimizarBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
+    MinimizarBtn.TextSize = 16
+    MinimizarBtn.BorderSizePixel = 0
+
+    local MinCorner = Instance.new("UICorner")
+    MinCorner.CornerRadius = UDim.new(0, 6)
+    MinCorner.Parent = MinimizarBtn
+
+    local FecharBtn = Instance.new("TextButton")
+    FecharBtn.Parent = TopBar
+    FecharBtn.BackgroundColor3 = CORES.FUNDO_BOTAO
+    FecharBtn.BackgroundTransparency = 0.5
+    FecharBtn.Position = UDim2.new(1, -28, 0, 7)
+    FecharBtn.Size = UDim2.new(0, 22, 0, 22)
+    FecharBtn.Font = Enum.Font.GothamBold
+    FecharBtn.Text = "✕"
+    FecharBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
+    FecharBtn.TextSize = 14
+    FecharBtn.BorderSizePixel = 0
+
+    local FecharCorner = Instance.new("UICorner")
+    FecharCorner.CornerRadius = UDim.new(0, 6)
+    FecharCorner.Parent = FecharBtn
+
+    local ContentFrame = Instance.new("Frame")
+    ContentFrame.Parent = Frame
+    ContentFrame.BackgroundTransparency = 1
+    ContentFrame.BorderSizePixel = 0
+    ContentFrame.Position = UDim2.new(0, 0, 0, 40)
+    ContentFrame.Size = UDim2.new(1, 0, 1, -40)
+
+    local WelcomeLabel = Instance.new("TextLabel")
+    WelcomeLabel.Parent = ContentFrame
+    WelcomeLabel.BackgroundTransparency = 1
+    WelcomeLabel.Position = UDim2.new(0, 0, 0, 5)
+    WelcomeLabel.Size = UDim2.new(1, 0, 0, 20)
+    WelcomeLabel.Font = Enum.Font.Gotham
+    WelcomeLabel.Text = "Bem-vindo ao VTR HUB!"
+    WelcomeLabel.TextColor3 = CORES.TEXTO_BRANCO
+    WelcomeLabel.TextSize = 14
+
+    local AntibanLabel = Instance.new("TextLabel")
+    AntibanLabel.Parent = ContentFrame
+    AntibanLabel.BackgroundTransparency = 1
+    AntibanLabel.Position = UDim2.new(0, 0, 0, 28)
+    AntibanLabel.Size = UDim2.new(1, 0, 0, 16)
+    AntibanLabel.Font = Enum.Font.Gotham
+    AntibanLabel.Text = "🛡️ Antiban: ATIVO (0.5s)"
+    AntibanLabel.TextColor3 = CORES.ANTIBAN_ATIVO
+    AntibanLabel.TextSize = 11
+
+    local StatusLabel = Instance.new("TextLabel")
+    StatusLabel.Parent = ContentFrame
+    StatusLabel.BackgroundTransparency = 1
+    StatusLabel.Position = UDim2.new(0, 0, 0, 160)
+    StatusLabel.Size = UDim2.new(1, 0, 0, 20)
+    StatusLabel.Font = Enum.Font.Gotham
+    StatusLabel.Text = "Pronto para usar!"
+    StatusLabel.TextColor3 = CORES.SUCESSO
+    StatusLabel.TextSize = 12
+
+    local function UpdateStatus(message, isSuccess)
+        StatusLabel.Text = message
+        StatusLabel.TextColor3 = isSuccess and CORES.SUCESSO or CORES.ERRO
+        task.wait(2)
+        StatusLabel.Text = "Pronto para usar!"
+        StatusLabel.TextColor3 = CORES.SUCESSO
+    end
+
+    local function CriarBotaoToggle(textoOff, textoOn, posY, rewardId)
+        local btn = Instance.new("TextButton")
+        btn.Parent = ContentFrame
+        btn.BackgroundColor3 = CORES.FUNDO_BOTAO
+        btn.BackgroundTransparency = 0.5
+        btn.BorderSizePixel = 0
+        btn.Position = UDim2.new(0, 15, 0, posY)
+        btn.Size = UDim2.new(1, -30, 0, 32)
+        btn.Font = Enum.Font.GothamBold
+        btn.Text = textoOff
+        btn.TextColor3 = CORES.TEXTO_BRANCO
+        btn.TextSize = 13
+        btn.AutoButtonColor = false
+
+        local btnCorner = Instance.new("UICorner")
+        btnCorner.CornerRadius = UDim.new(0, 8)
+        btnCorner.Parent = btn
+
+        local ativo = false
+
+        local function atualizarVisual()
+            if ativo then
+                btn.Text = textoOn
+                TweenService:Create(btn, TweenInfo.new(0.2), {
+                    BackgroundColor3 = Color3.fromRGB(50, 200, 50),
+                    BackgroundTransparency = 0.3
+                }):Play()
+            else
+                btn.Text = textoOff
+                TweenService:Create(btn, TweenInfo.new(0.2), {
+                    BackgroundColor3 = CORES.FUNDO_BOTAO,
+                    BackgroundTransparency = 0.5
+                }):Play()
+            end
+        end
+
+        local function executarRecompensa()
+            if not remote then
+                remote = ReplicatedStorage:WaitForChild("Packages"):WaitForChild("_Index")
+                    :WaitForChild("sleitnick_knit@1.7.0"):WaitForChild("knit")
+                    :WaitForChild("Services"):WaitForChild("SeasonService")
+                    :WaitForChild("RF"):WaitForChild("RequestRankedReward")
+            end
+            executarComAntiban(function()
+                local success, err = pcall(function()
+                    remote:InvokeServer(rewardId)
+                end)
+                if success then
+                    UpdateStatus("✅ " .. textoOff .. " coletado!", true)
+                else
+                    UpdateStatus("❌ Erro: " .. tostring(err), false)
+                end
+            end)
+        end
+
+        local function loopAuto()
+            while ativo do
+                executarRecompensa()
+                waitAntiban(ANTIBAN.INTERVALO_BASE)
+            end
+        end
+
+        btn.MouseButton1Click:Connect(function()
+            ativo = not ativo
+            atualizarVisual()
+            if ativo then
+                task.spawn(loopAuto)
+                UpdateStatus("⚡ Auto " .. textoOff .. " ATIVADO!", true)
+            else
+                UpdateStatus("⏸️ Auto " .. textoOff .. " DESATIVADO!", true)
+            end
+        end)
+
+        btn.MouseEnter:Connect(function()
+            if not ativo then
+                TweenService:Create(btn, TweenInfo.new(0.2), {
+                    BackgroundColor3 = CORES.PRINCIPAL,
+                    BackgroundTransparency = 0.3
+                }):Play()
+            end
+        end)
+
+        btn.MouseLeave:Connect(function()
+            if not ativo then
+                TweenService:Create(btn, TweenInfo.new(0.2), {
+                    BackgroundColor3 = CORES.FUNDO_BOTAO,
+                    BackgroundTransparency = 0.5
+                }):Play()
+            end
+        end)
+
+        return btn
+    end
+
+    CriarBotaoToggle("🎲 Lucky Spin", "🎲 Lucky Spin [ON]", 55, 1)
+    CriarBotaoToggle("💰 Yen", "💰 Yen [ON]", 95, 2)
+    CriarBotaoToggle("⚡ Habilidades", "⚡ Habilidades [ON]", 135, 4)
+
+    local minimizado = false
+    local tamanhoOriginal = UDim2.new(0, 280, 0, 230)
+
+    local function ToggleMinimizar()
+        minimizado = not minimizado
+        if minimizado then
+            TweenService:Create(Frame, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {
+                Size = UDim2.new(0, 280, 0, 35)
+            }):Play()
+            ContentFrame.Visible = false
+            MinimizarBtn.Text = "□"
+        else
+            TweenService:Create(Frame, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {
+                Size = tamanhoOriginal
+            }):Play()
+            ContentFrame.Visible = true
+            MinimizarBtn.Text = "─"
+        end
+    end
+
+    MinimizarBtn.MouseButton1Click:Connect(ToggleMinimizar)
+    FecharBtn.MouseButton1Click:Connect(function()
+        ScreenGui:Destroy()
+    end)
+
+    FecharBtn.MouseEnter:Connect(function()
+        TweenService:Create(FecharBtn, TweenInfo.new(0.2), {
+            BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+        }):Play()
+    end)
+
+    FecharBtn.MouseLeave:Connect(function()
+        TweenService:Create(FecharBtn, TweenInfo.new(0.2), {
+            BackgroundColor3 = CORES.FUNDO_BOTAO
+        }):Play()
+    end)
+end
+
+-- ==================== INTERFACE DE KEY ====================
+local function CriarInterfaceKey()
+    local ScreenGui = Instance.new("ScreenGui")
+    ScreenGui.Name = "VtrHub_Key"
+    ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+    ScreenGui.ResetOnSpawn = false
+
+    local Frame = Instance.new("Frame")
+    Frame.Parent = ScreenGui
+    Frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    Frame.BackgroundTransparency = 0.05
+    Frame.BorderSizePixel = 0
+    Frame.Position = UDim2.new(0.5, -150, 0.5, -100)
+    Frame.Size = UDim2.new(0, 300, 0, 180)
+    Frame.Active = true
+    Frame.Draggable = true
+    Frame.ClipsDescendants = true
+
+    local Corner = Instance.new("UICorner")
+    Corner.CornerRadius = UDim.new(0, 12)
+    Corner.Parent = Frame
+
+    local TopBar = Instance.new("Frame")
+    TopBar.Parent = Frame
+    TopBar.BackgroundColor3 = CORES.FUNDO_ESCURO
+    TopBar.BackgroundTransparency = 0.3
+    TopBar.BorderSizePixel = 0
+    TopBar.Position = UDim2.new(0, 0, 0, 0)
+    TopBar.Size = UDim2.new(1, 0, 0, 35)
+
+    local TopCorner = Instance.new("UICorner")
+    TopCorner.CornerRadius = UDim.new(0, 12)
+    TopCorner.Parent = TopBar
+
+    local Titulo = Instance.new("TextLabel")
+    Titulo.Parent = TopBar
+    Titulo.BackgroundTransparency = 1
+    Titulo.Position = UDim2.new(0, 12, 0, 0)
+    Titulo.Size = UDim2.new(0, 200, 1, 0)
+    Titulo.Font = Enum.Font.GothamBold
+    Titulo.Text = "🔑 VTR HUB - AUTH"
+    Titulo.TextColor3 = CORES.PRINCIPAL
+    Titulo.TextSize = 14
+    Titulo.TextXAlignment = Enum.TextXAlignment.Left
+
+    local MinimizarBtn = Instance.new("TextButton")
+    MinimizarBtn.Parent = TopBar
+    MinimizarBtn.BackgroundColor3 = CORES.FUNDO_BOTAO
+    MinimizarBtn.BackgroundTransparency = 0.5
+    MinimizarBtn.Position = UDim2.new(1, -55, 0, 7)
+    MinimizarBtn.Size = UDim2.new(0, 22, 0, 22)
+    MinimizarBtn.Font = Enum.Font.GothamBold
+    MinimizarBtn.Text = "─"
+    MinimizarBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
+    MinimizarBtn.TextSize = 16
+    MinimizarBtn.BorderSizePixel = 0
+
+    local MinCorner = Instance.new("UICorner")
+    MinCorner.CornerRadius = UDim.new(0, 6)
+    MinCorner.Parent = MinimizarBtn
+
+    local FecharBtn = Instance.new("TextButton")
+    FecharBtn.Parent = TopBar
+    FecharBtn.BackgroundColor3 = CORES.FUNDO_BOTAO
+    FecharBtn.BackgroundTransparency = 0.5
+    FecharBtn.Position = UDim2.new(1, -28, 0, 7)
+    FecharBtn.Size = UDim2.new(0, 22, 0, 22)
+    FecharBtn.Font = Enum.Font.GothamBold
+    FecharBtn.Text = "✕"
+    FecharBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
+    FecharBtn.TextSize = 14
+    FecharBtn.BorderSizePixel = 0
+
+    local FecharCorner = Instance.new("UICorner")
+    FecharCorner.CornerRadius = UDim.new(0, 6)
+    FecharCorner.Parent = FecharBtn
+
+    local ContentFrame = Instance.new("Frame")
+    ContentFrame.Parent = Frame
+    ContentFrame.BackgroundTransparency = 1
+    ContentFrame.BorderSizePixel = 0
+    ContentFrame.Position = UDim2.new(0, 0, 0, 40)
+    ContentFrame.Size = UDim2.new(1, 0, 1, -40)
+
+    local LabelKey = Instance.new("TextLabel")
+    LabelKey.Parent = ContentFrame
+    LabelKey.BackgroundTransparency = 1
+    LabelKey.Position = UDim2.new(0, 15, 0, 15)
+    LabelKey.Size = UDim2.new(1, -30, 0, 20)
+    LabelKey.Font = Enum.Font.Gotham
+    LabelKey.Text = "Digite a Key:"
+    LabelKey.TextColor3 = CORES.TEXTO_BRANCO
+    LabelKey.TextSize = 13
+    LabelKey.TextXAlignment = Enum.TextXAlignment.Left
+
+    local TextBox = Instance.new("TextBox")
+    TextBox.Parent = ContentFrame
+    TextBox.BackgroundColor3 = CORES.FUNDO_BOTAO
+    TextBox.BackgroundTransparency = 0.5
+    TextBox.BorderSizePixel = 0
+    TextBox.Position = UDim2.new(0, 15, 0, 40)
+    TextBox.Size = UDim2.new(1, -30, 0, 32)
+    TextBox.Font = Enum.Font.Gotham
+    TextBox.Text = ""
+    TextBox.PlaceholderText = "Ex: VTRSPJ9S*S"
+    TextBox.PlaceholderColor3 = Color3.fromRGB(150, 150, 150)
+    TextBox.TextColor3 = CORES.TEXTO_BRANCO
+    TextBox.TextSize = 14
+    TextBox.ClearTextOnFocus = false
+
+    local TextBoxCorner = Instance.new("UICorner")
+    TextBoxCorner.CornerRadius = UDim.new(0, 8)
+    TextBoxCorner.Parent = TextBox
+
+    local VerificarBtn = Instance.new("TextButton")
+    VerificarBtn.Parent = ContentFrame
+    VerificarBtn.BackgroundColor3 = CORES.PRINCIPAL
+    VerificarBtn.BackgroundTransparency = 0.2
+    VerificarBtn.BorderSizePixel = 0
+    VerificarBtn.Position = UDim2.new(0, 15, 0, 85)
+    VerificarBtn.Size = UDim2.new(1, -30, 0, 32)
+    VerificarBtn.Font = Enum.Font.GothamBold
+    VerificarBtn.Text = "VERIFICAR KEY"
+    VerificarBtn.TextColor3 = CORES.TEXTO_BRANCO
+    VerificarBtn.TextSize = 13
+    VerificarBtn.AutoButtonColor = false
+
+    local BtnCorner = Instance.new("UICorner")
+    BtnCorner.CornerRadius = UDim.new(0, 8)
+    BtnCorner.Parent = VerificarBtn
+
+    local StatusLabel = Instance.new("TextLabel")
+    StatusLabel.Parent = ContentFrame
+    StatusLabel.BackgroundTransparency = 1
+    StatusLabel.Position = UDim2.new(0, 15, 0, 125)
+    StatusLabel.Size = UDim2.new(1, -30, 0, 20)
+    StatusLabel.Font = Enum.Font.Gotham
+    StatusLabel.Text = ""
+    StatusLabel.TextColor3 = CORES.ERRO
+    StatusLabel.TextSize = 12
+
+    local function VerificarKey()
+        local keyDigitada = TextBox.Text
+        local keyValida = false
+        for _, key in ipairs(KEYS_VALIDAS) do
+            if key == keyDigitada then
+                keyValida = true
+                break
+            end
+        end
+
+        if keyValida then
+            StatusLabel.Text = "✅ Key válida! Carregando..."
+            StatusLabel.TextColor3 = CORES.SUCESSO
+            task.wait(1)
+            ScreenGui:Destroy()
+            CriarInterfacePrincipal()
+        else
+            StatusLabel.Text = "❌ Key inválida! Tente novamente."
+            StatusLabel.TextColor3 = CORES.ERRO
+        end
+    end
+
+    VerificarBtn.MouseButton1Click:Connect(VerificarKey)
+    TextBox.FocusLost:Connect(function(enterPressed)
+        if enterPressed then
+            VerificarKey()
+        end
+    end)
+
+    VerificarBtn.MouseEnter:Connect(function()
+        TweenService:Create(VerificarBtn, TweenInfo.new(0.2), {
+            BackgroundColor3 = CORES.HOVER,
+            BackgroundTransparency = 0.1
+        }):Play()
+    end)
+    VerificarBtn.MouseLeave:Connect(function()
+        TweenService:Create(VerificarBtn, TweenInfo.new(0.2), {
+            BackgroundColor3 = CORES.PRINCIPAL,
+            BackgroundTransparency = 0.2
+        }):Play()
+    end)
+
+    FecharBtn.MouseEnter:Connect(function()
+        TweenService:Create(FecharBtn, TweenInfo.new(0.2), {
+            BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+        }):Play()
+    end)
+    FecharBtn.MouseLeave:Connect(function()
+        TweenService:Create(FecharBtn, TweenInfo.new(0.2), {
+            BackgroundColor3 = CORES.FUNDO_BOTAO
+        }):Play()
+    end)
+
+    MinimizarBtn.MouseButton1Click:Connect(function()
+        ScreenGui:Destroy()
+    end)
+
+    FecharBtn.MouseButton1Click:Connect(function()
+        ScreenGui:Destroy()
+    end)
+end
+
+-- ==================== INICIALIZAÇÃO ====================
+math.randomseed(os.time() + (tick() * 1000) % 10000)
+CriarInterfaceKey()
